@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0f172a">
+<title>DocScan</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png" type="image/png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="stylesheet" href="style.css">
+<script src="config.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" defer></script>
+<script src="app.js" defer></script>
+</head>
+<body>
+
+<!-- Start -->
+<section id="home" class="screen active">
+  <header class="bar">
+    <h1>DocScan</h1>
+    <button id="btnSettings" class="icon" aria-label="Einstellungen">⚙</button>
+  </header>
+  <main class="content">
+    <button id="btnNewScan" class="primary big">📄 Neuer Scan</button>
+    <div id="status" class="status"></div>
+    <h2>Zuletzt hochgeladen</h2>
+    <ul id="recentList" class="recent"></ul>
+  </main>
+</section>
+
+<!-- Kamera -->
+<section id="camera" class="screen">
+  <video id="video" playsinline muted autoplay></video>
+  <canvas id="overlay"></canvas>
+  <div class="cam-top">
+    <button id="btnCamClose" class="icon" aria-label="Schließen">✕</button>
+    <span id="camHint">Kamera startet …</span>
+    <button id="btnTorch" class="icon" hidden aria-label="Licht">🔦</button>
+    <button id="btnAuto" class="chip">Auto</button>
+  </div>
+  <div class="cam-bottom">
+    <div id="thumbs" class="thumbs"></div>
+    <div class="cam-controls">
+      <span id="pageCount" class="count">0 Seiten</span>
+      <button id="btnShutter" class="shutter" aria-label="Aufnehmen"></button>
+      <button id="btnDone" class="done" disabled>Fertig ✓</button>
+    </div>
+  </div>
+  <div id="flash"></div>
+</section>
+
+<!-- Seite bearbeiten -->
+<section id="edit" class="screen">
+  <header class="bar">
+    <button id="btnEditBack" class="icon" aria-label="Zurück">←</button>
+    <h1>Seite <span id="editNo"></span></h1>
+    <button id="btnEditDelete" class="icon" aria-label="Löschen">🗑</button>
+  </header>
+  <div id="editStage" class="stage"><canvas id="editCanvas"></canvas></div>
+  <p class="muted center small">Ecken verschieben, um den Zuschnitt anzupassen</p>
+  <div class="tools">
+    <select id="editMode" aria-label="Filter">
+      <option value="color">Farbe</option>
+      <option value="gray">Graustufen</option>
+      <option value="bw">Schwarz-Weiß</option>
+      <option value="none">Original</option>
+    </select>
+    <button id="btnRotate" class="secondary">⟳ <span id="rotLabel">0°</span></button>
+    <button id="btnEditApply" class="primary">Übernehmen</button>
+  </div>
+</section>
+
+<!-- Speichern -->
+<section id="finish" class="screen">
+  <header class="bar">
+    <button id="btnFinishBack" class="icon" aria-label="Zurück">←</button>
+    <h1>Speichern</h1>
+    <span class="icon"></span>
+  </header>
+  <main class="content">
+    <div id="finishPages" class="pages"></div>
+    <button id="btnAddPage" class="secondary">＋ Weitere Seite scannen</button>
+
+    <label for="fileName">Dateiname</label>
+    <div class="row">
+      <input id="fileName" autocomplete="off" spellcheck="false">
+      <span class="suffix">.pdf</span>
+    </div>
+    <p id="ocrStatus" class="muted small"></p>
+
+    <label>Ordner in Google Drive</label>
+    <div id="folderChips" class="chips"></div>
+    <button id="btnPickFolder" class="secondary">📁 <span id="folderLabel">Ordner wählen</span></button>
+
+    <button id="btnUpload" class="primary big">In Google Drive hochladen</button>
+    <p id="uploadStatus" class="center"></p>
+  </main>
+</section>
+
+<!-- Einstellungen -->
+<section id="settings" class="screen">
+  <header class="bar">
+    <button id="btnSettingsBack" class="icon" aria-label="Zurück">←</button>
+    <h1>Einstellungen</h1>
+    <span class="icon"></span>
+  </header>
+  <main class="content">
+    <label for="setClientId">Google OAuth Client-ID</label>
+    <input id="setClientId" placeholder="xxxx.apps.googleusercontent.com" autocomplete="off" spellcheck="false">
+    <p class="muted small">Als „Autorisierte JavaScript-Quelle“ in Google Cloud eintragen:<br><code id="originHint"></code></p>
+
+    <label for="setMode">Standard-Filter für neue Seiten</label>
+    <select id="setMode">
+      <option value="color">Farbe</option>
+      <option value="gray">Graustufen</option>
+      <option value="bw">Schwarz-Weiß</option>
+      <option value="none">Original</option>
+    </select>
+
+    <label class="check"><input type="checkbox" id="setAuto"> Automatisch auslösen, wenn das Dokument ruhig liegt</label>
+
+    <button id="btnSettingsSave" class="primary">Speichern</button>
+    <button id="btnLogout" class="secondary">Von Google abmelden</button>
+  </main>
+</section>
+
+<!-- Ordnerauswahl -->
+<dialog id="folderDlg">
+  <div class="dlg-head">
+    <button id="btnFolderUp" class="icon" aria-label="Übergeordneter Ordner">↑</button>
+    <span id="folderPath"></span>
+    <button id="btnFolderClose" class="icon" aria-label="Schließen">✕</button>
+  </div>
+  <ul id="folderList" class="folders"></ul>
+  <div class="dlg-foot">
+    <button id="btnFolderNew" class="secondary">＋ Neuer Ordner</button>
+    <button id="btnFolderChoose" class="primary">Diesen Ordner wählen</button>
+  </div>
+</dialog>
+
+</body>
+</html>
